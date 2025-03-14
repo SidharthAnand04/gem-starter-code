@@ -7,9 +7,19 @@ This project implements an autonomous lane following system with integrated stop
 - Provide real-time visual feedback of lane detection and vehicle control
 
 ## Models Used
-The system utilizes two pre-trained deep learning models: Make sure to run and 
-- YOLOPv2 for lane detection: https://github.com/CAIC-AD/YOLOPv2
-- YOLOv5s-seg for stop sign detection: https://github.com/ultralytics/yolov5
+The system utilizes two pre-trained deep learning models:
+
+- **YOLOPv2 for lane detection**: https://github.com/CAIC-AD/YOLOPv2
+  
+  Instructions for use:
+  1. Download the model from https://github.com/CAIC-AD/YOLOPv2/releases/download/V0.0.1/yolopv2.pt
+  2. Move the .pt model file into the weights folder
+
+- **YOLOv5s-seg for stop sign detection**: https://github.com/ultralytics/yolov5
+  
+  Instructions for use:
+  - Model is automatically downloaded when first running the system
+  - Internet connection is required for initial download
 
 
 ## Technical Approach
