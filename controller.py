@@ -70,7 +70,7 @@ class LaneFollowController:
         self.enable_sub = rospy.Subscriber("/pacmod/as_tx/enable", Bool, self.enable_callback)
         self.speed_sub = rospy.Subscriber("/pacmod/parsed_tx/vehicle_speed_rpt", VehicleSpeedRpt, self.speed_callback)
         self.endgoal_sub = rospy.Subscriber("/lane_detection/endgoal", PoseStamped, self.endgoal_callback)
-        self.stop_signal_sub = rospy.Subscriber("stop_signal/signal", Bool, self.stop_signal_callback)
+        
 
         self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
         self.gear_pub = rospy.Publisher('/pacmod/as_rx/shift_cmd', PacmodCmd, queue_size=1)
@@ -102,8 +102,6 @@ class LaneFollowController:
         self.steer_cmd.angular_position = 0.0
         self.steer_cmd.angular_velocity_limit = 3.5
 
-        self.stop_signal = False
-
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
 
@@ -113,9 +111,6 @@ class LaneFollowController:
     def endgoal_callback(self, msg):
         self.endgoal_x = msg.pose.position.x
         self.endgoal_y = msg.pose.position.y
-
-    def stop_signal_callback(self, msg):
-        self.stop_signal = msg.data
 
     def front2steer(self, f_angle):
         if f_angle > 35:
@@ -153,53 +148,46 @@ class LaneFollowController:
                     self.gem_enable = True
                     rospy.loginfo("GEM Enabled with Forward Gear!")
 
-            if self.stop_signal:
-                self.brake_cmd.f64_cmd = 1.0
-                self.accel_cmd.f64_cmd = 0.0
-                self.brake_pub.publish(self.brake_cmd)
+            if self.endgoal_x is not None:
+                lateral_error_pixels = self.endgoal_x - self.image_center_x
+                scaling_factor = 5.0
+                desired_front_angle = -lateral_error_pixels * scaling_factor
+
+                current_time = rospy.get_time()
+                steering_output = self.pid_steer.get_control(current_time, lateral_error_pixels, fwd=0.0)
+                front_angle = -steering_output * 4.0
+                steering_angle = self.front2steer(front_angle)
+
+                speed_time = rospy.get_time()
+                speed_error = self.desired_speed - self.speed
+
+                if abs(speed_error) > 0.1:
+                    speed_output_accel = self.pid_speed.get_control(speed_time, speed_error)
+                    if speed_output_accel > self.max_accel:
+                        speed_output_accel = self.max_accel
+                    if speed_output_accel < 0.2:
+                        speed_output_accel = 0.2
+                else:
+                    speed_output_accel = 0.0
+
+                self.accel_cmd.f64_cmd = speed_output_accel
+
+                if front_angle <= 30 and front_angle >= -30:
+                    self.turn_cmd.ui16_cmd = 1
+                elif front_angle > 30:
+                    self.turn_cmd.ui16_cmd = 2
+                else:
+                    self.turn_cmd.ui16_cmd = 0
+
+                self.accel_cmd.f64_cmd = speed_output_accel
+                self.steer_cmd.angular_position = math.radians(steering_angle)
+
+                if self.gem_enable:
+                    rospy.loginfo(f"Lateral error: {lateral_error_pixels} px, Steering angle: {steering_angle} deg, Speed: {self.speed} m/s")
+
                 self.accel_pub.publish(self.accel_cmd)
-                rospy.loginfo("Stop signal received. Stopping the vehicle.")
-            else:
-                if self.endgoal_x is not None:
-                    lateral_error_pixels = self.endgoal_x - self.image_center_x
-                    scaling_factor = 5.0
-                    desired_front_angle = -lateral_error_pixels * scaling_factor
-
-                    current_time = rospy.get_time()
-                    steering_output = self.pid_steer.get_control(current_time, lateral_error_pixels, fwd=0.0)
-                    front_angle = -steering_output * 4.0
-                    steering_angle = self.front2steer(front_angle)
-
-                    speed_time = rospy.get_time()
-                    speed_error = self.desired_speed - self.speed
-
-                    if abs(speed_error) > 0.1:
-                        speed_output_accel = self.pid_speed.get_control(speed_time, speed_error)
-                        if speed_output_accel > self.max_accel:
-                            speed_output_accel = self.max_accel
-                        if speed_output_accel < 0.2:
-                            speed_output_accel = 0.2
-                    else:
-                        speed_output_accel = 0.0
-
-                    self.accel_cmd.f64_cmd = speed_output_accel
-
-                    if front_angle <= 30 and front_angle >= -30:
-                        self.turn_cmd.ui16_cmd = 1
-                    elif front_angle > 30:
-                        self.turn_cmd.ui16_cmd = 2
-                    else:
-                        self.turn_cmd.ui16_cmd = 0
-
-                    self.accel_cmd.f64_cmd = speed_output_accel
-                    self.steer_cmd.angular_position = math.radians(steering_angle)
-
-                    if self.gem_enable:
-                        rospy.loginfo(f"Lateral error: {lateral_error_pixels} px, Steering angle: {steering_angle} deg, Speed: {self.speed} m/s")
-
-                    self.accel_pub.publish(self.accel_cmd)
-                    self.steer_pub.publish(self.steer_cmd)
-                    self.turn_pub.publish(self.turn_cmd)
+                self.steer_pub.publish(self.steer_cmd)
+                self.turn_pub.publish(self.turn_cmd)
 
             self.rate.sleep()
 

@@ -30,24 +30,22 @@ class LaneNetDetector:
             self.model.half()
             
         self.model.to(self.device).eval()
-        self.stop_model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True, trust_repo=True)
-        self.stop_model.to(self.device).eval()
+        
         
         self.Focal_Length = 800
         self.Real_Height_SS = .75
         self.Brake_Distance = 5
         self.Brake_Duration = 3
-        self.stop_flag = False
-        self.stop_start_time = None
+      
         
         self.sub_image = rospy.Subscriber('oak/rgb/image_raw', Image, self.img_callback, queue_size=1)
         
         self.pub_contrasted_image = rospy.Publisher("lane_detection/contrasted_image", Image, queue_size=1)
         self.pub_annotated = rospy.Publisher("lane_detection/annotate", Image, queue_size=1)
         self.pub_waypoints = rospy.Publisher("lane_detection/waypoints", Path, queue_size=1)
-        self.pub_stop_signal = rospy.Publisher("stop_signal/signal", Bool, queue_size=1)
+        
         self.pub_endgoal = rospy.Publisher("lane_detection/endgoal", PoseStamped, queue_size=1)
-        self.pub_stop_annotated = rospy.Publisher("stop_signal/stop_sign_annotate", Image, queue_size=1)
+       
 
     def img_callback(self, img):
         try:
@@ -83,9 +81,6 @@ class LaneNetDetector:
                     annotated_img = self.detect_lanes(seg[i], ll[i], contrasted_img)
                     annotated_image_msg = self.bridge.cv2_to_imgmsg(annotated_img, "bgr8")
                     self.pub_annotated.publish(annotated_image_msg)
-                # brake = self.detect_stop(original_images[0])
-                # if brake:
-                #     print("Stop sign detected. Stopping...")
                     
         except CvBridgeError as e:
             print(e)
@@ -97,41 +92,6 @@ class LaneNetDetector:
         img_tensor = img_tensor.half() if self.half else img_tensor.float()
         img_tensor /= 255.0
         return img_tensor
-
-    # def detect_stop(self, img):
-    #     brake = False
-    #     stop_signs = self.detect_objects(img, 'stop_sign')
-        
-    #     if stop_signs:
-    #         for (xcenter, ycenter, width, height) in stop_signs:
-    #             xmin = int(xcenter - width / 2)
-    #             ymin = int(ycenter - height / 2)
-    #             xmax = int(xcenter + width / 2)
-    #             ymax = int(ycenter + height / 2)
-    #             if height > 0:
-    #                 estimated_distance = (self.Real_Height_SS * self.Focal_Length) / height
-    #                 aspect_ratio = width / height
-    #                 facing_us = 0.7 < aspect_ratio < 1.3
-    #                 if estimated_distance <= self.Brake_Distance and facing_us:
-    #                     brake = True
-                        
-    #     if brake and not self.stop_flag:
-    #         self.stop_flag = True
-    #         self.stop_start_time = time.time()
-    #         detected_image_msg = self.bridge.cv2_to_imgmsg(img, "bgr8")
-    #         self.pub_stop_annotated.publish(detected_image_msg)
-    #         stop_msg = Bool()
-    #         stop_msg.data = True
-    #         self.pub_stop_signal.publish(stop_msg)
-            
-    #     elif not brake and self.stop_flag:
-    #         stopped_time = time.time() - self.stop_start_time
-    #         if stopped_time > self.Brake_Duration:
-    #             self.stop_flag = False
-    #             stop_msg = Bool()
-    #             stop_msg.data = False
-    #             self.pub_stop_signal.publish(stop_msg)
-    #     return brake
 
     def image_to_world(self, u, v, camera_matrix, camera_height):
         fx = camera_matrix[0, 0]
