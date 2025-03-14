@@ -5,6 +5,10 @@ This project implements an autonomous lane following system with integrated  for
 - Follow lane markings safely and smoothly
 - Provide real-time visual feedback of lane detection and vehicle control
 
+## Demo Video
+[![Autonomous Lane Following Demo](https://img.youtube.com/vi/EK7IHKS61hU/0.jpg)](https://youtu.be/EK7IHKS61hU)
+*Click the image above to watch the demonstration video*
+
 ## Models Used
 The system utilizes two pre-trained deep learning models:
 
