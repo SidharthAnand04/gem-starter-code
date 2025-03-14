@@ -31,21 +31,21 @@ class LaneNetDetector:
             
         self.model.to(self.device).eval()
         
+        # Download the object detection model from the Ultralytics YOLOv5 repository
+        # self.stop_model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True, trust_repo=True)
+        # self.stop_model.to(self.device).eval()
         
         self.Focal_Length = 800
         self.Real_Height_SS = .75
         self.Brake_Distance = 5
         self.Brake_Duration = 3
-      
         
         self.sub_image = rospy.Subscriber('oak/rgb/image_raw', Image, self.img_callback, queue_size=1)
         
         self.pub_contrasted_image = rospy.Publisher("lane_detection/contrasted_image", Image, queue_size=1)
         self.pub_annotated = rospy.Publisher("lane_detection/annotate", Image, queue_size=1)
         self.pub_waypoints = rospy.Publisher("lane_detection/waypoints", Path, queue_size=1)
-        
         self.pub_endgoal = rospy.Publisher("lane_detection/endgoal", PoseStamped, queue_size=1)
-       
 
     def img_callback(self, img):
         try:

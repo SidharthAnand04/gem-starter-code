@@ -1,9 +1,8 @@
-# Autonomous Lane Following System with Stop Sign Detection
+# Autonomous Lane Following System 
 
 ## Motivation
-This project implements an autonomous lane following system with integrated stop sign detection for autonomous vehicles. The system is designed to:
+This project implements an autonomous lane following system with integrated  for autonomous vehicles. The system is designed to:
 - Follow lane markings safely and smoothly
-- Detect and respond to stop signs appropriately
 - Provide real-time visual feedback of lane detection and vehicle control
 
 ## Models Used
@@ -36,14 +35,13 @@ The system consists of two main components:
   - Grayscale conversion and thresholding for enhanced lane visibility
   - Frame buffering for stable detection
 - Generates waypoints for vehicle navigation
-- Includes stop sign detection using YOLOv5
+- Stop sign detection can be introduced using YOLOv5
 
 #### Vehicle Control
 - Implements PID controllers for both speed and steering
 - Features:
   - Adaptive steering control based on lateral error
   - Speed control with acceleration limits
-  - Emergency stop functionality for stop sign detection
   - Smooth gear shifting and brake control
 
 ### Key Features
@@ -53,18 +51,6 @@ The system consists of two main components:
 - Dynamic waypoint generation
 - Continuous path planning
 - Lateral error correction
-
-#### Stop Sign Detection
-- Real-time stop sign recognition
-- Distance estimation using focal length calculations
-- Configurable brake distance threshold
-- Timed stop duration management
-
-#### Safety Features
-- Maximum acceleration limits
-- Steering angle constraints
-- Emergency stop capabilities
-- Continuous system state monitoring
 
 ## Implementation Details
 
@@ -88,7 +74,6 @@ The system consists of two main components:
 - `/oak/rgb/image_raw`: Camera feed
 - `/pacmod/as_tx/enable`: Vehicle enable status
 - `/pacmod/parsed_tx/vehicle_speed_rpt`: Vehicle speed
-- `stop_signal/signal`: Stop sign detection signal
 
 #### Published Topics
 - `/lane_detection/waypoints`: Navigation waypoints
@@ -98,13 +83,14 @@ The system consists of two main components:
 
 ## Usage
 1. Launch ROS master node
+
 2. Start the lane detection node:
    ```bash
-   rosrun lane_detection lane_detection_node.py
+   python lane_detection_node.py
    ```
 3. Start the controller node:
    ```bash
-   rosrun controller lane_follow_controller.py
+   python lane_follow_controller.py
    ```
 
 ## Performance Considerations
